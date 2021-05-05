@@ -270,7 +270,8 @@ function render (user,name, merged) {
 }
 
 array.forEach(function(author) {
-    render(author.user, author.name), merged = false;
+    render(author.user, author.name, merged = false);
+    //iterar la paginacion para scrapear las PR mergeadas
     render(author.user, author.name, merged = true);
 
 })
