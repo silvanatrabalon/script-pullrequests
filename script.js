@@ -57,6 +57,7 @@ function renderHeaderTitle() {
     gannett = addColum('Gannett', true, false);
     from = addColum('Reviewers', true, false);
     opened = addColum('Opened', true, false);
+    merged = addColum('Merged', true, false);
     statuss = addColum('Status', true, false);
     content.appendChild(title);
     content.appendChild(num);
@@ -64,6 +65,7 @@ function renderHeaderTitle() {
     content.appendChild(gannett);
     content.appendChild(from);
     content.appendChild(opened);
+    content.appendChild(merged);
     content.appendChild(statuss);
     container.appendChild(content);
 }
@@ -163,9 +165,15 @@ function checkArray(rev, array) {
     return isGlb;
 }
 
-function render (user,name) {
-    const mysite = httpGet("https://github.com/GannettDigital/tangent/pulls/" + user),   
-          doc = document.createElement('html');
+function render (user,name, merged) {
+    if (merged) {
+        var mysite = httpGet(`https://github.com/GannettDigital/tangent/pulls?q=author%3A${user}+is%3Amerged++`),   
+        doc = document.createElement('html');
+    } else {
+        var mysite = httpGet("https://github.com/GannettDigital/tangent/pulls/" + user),   
+        doc = document.createElement('html');
+    }
+
     doc.innerHTML = mysite;
     const prs = doc.querySelectorAll('[id ^= "issue_"]'),
           activePr = [];
@@ -182,14 +190,14 @@ function render (user,name) {
             if (pr.classList.contains('Box-row')) {
                 flag = true;
                 title = pr.querySelector('a[data-hovercard-type="pull_request"]').text;
-                elementLabels = pr.querySelectorAll('.labels');
-                elementLabels.forEach(function(lbs){
-                    labels = lbs.querySelectorAll('.IssueLabel');
-                    labels.forEach(function(lb){
-                        label.push(lb.text); 
-                    });
-                    tags.push(label);
-                })
+                    elementLabels = pr.querySelectorAll('.labels');
+                    elementLabels.forEach(function(lbs){
+                        labels = lbs.querySelectorAll('.IssueLabel');
+                        labels.forEach(function(lb){
+                            label.push(lb.text); 
+                        });
+                        tags.push(label);
+                    })
                 datetime = pr.querySelectorAll("relative-time[datetime]");
                 opened = datetime[0].title;
                 d = new Date (opened);
@@ -236,14 +244,16 @@ function render (user,name) {
                 } else {
                     reviewers = '';
                 }
-                activePr.push({'title': title.split(' ')[0], 'labels': tags[0], 'opened' : d.replace(',',''), 'comments': nroComments.trim(), 'pr': num, 'gannett': numRev, 'from': reviewers });
+                activePr.push({'title': title.split(' ')[0], 'labels': merged ? ['merged'] : tags[0], 'opened' : merged ? '' : d.replace(',',''),'merged' : merged ? d.replace(',','') : '', 'comments': nroComments.trim(), 'pr': num, 'gannett': numRev, 'from': reviewers });
             }
         })
     }
-    content = createContent();
-    author = addColum(name, true , false);
-    content.appendChild(author);
-    container.appendChild(content);
+    if (!merged) {
+        content = createContent();
+        author = addColum(name, true , false);
+        content.appendChild(author);
+        container.appendChild(content);
+    }
 
     //Render grid
     activePr.forEach(function(e) {
@@ -254,12 +264,15 @@ function render (user,name) {
         renderColumn(content, e.gannett);
         renderColumn(content, e.from);
         renderColumn(content, e.opened);
+        renderColumn(content, e.merged);
         renderColumn(content, e.labels , true);
     })
 }
 
 array.forEach(function(author) {
-    render(author.user, author.name);
+    render(author.user, author.name), merged = false;
+    render(author.user, author.name, merged = true);
+
 })
 
 cancelButton = document.querySelector('.cancel');
